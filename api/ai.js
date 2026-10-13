@@ -58,7 +58,6 @@ module.exports = async (req, res) => {
   const models = Array.from(new Set([
     process.env.GEMINI_MODEL,
     "gemini-1.5-flash",
-    "gemini-2.0-flash"
   ].filter(Boolean)));
 
   let last = { status: 502, text: "" };
