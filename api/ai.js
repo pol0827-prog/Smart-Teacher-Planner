@@ -70,21 +70,27 @@ module.exports = async (req, res) => {
   if (!key) return res.status(500).json({ error: 'server key missing' });
   const errs = [];
   let limited = false;
-  for (const model of modelList(!!search)) {
+  // 검색 요청은 맨 앞 모델로 한 번만 검색을 시도하고, 안 되면(무료 사용분은 검색 불가) 검색 없이 인공지능 지식으로 답함
+  const NOSEARCH = '(지금은 웹 검색을 쓸 수 없습니다. 검색하지 말고, 알고 있는 지식만으로 요청한 내용을 빠짐없이 채워 답하세요. 최신이 아닐 수 있어도 거절하지 말고 가장 그럴듯한 내용을 적으세요.)\n\n';
+  const plan = search
+    ? [{ model: modelList(true)[0], search: true }].concat(modelList(false).map(m => ({ model: m, search: false })))
+    : modelList(false).map(m => ({ model: m, search: false }));
+  for (const step of plan) {
+    const model = step.model;
     try {
       const g = await fetch(BASE + encodeURIComponent(model) + ':generateContent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
         body: JSON.stringify(Object.assign(
-          { contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 8192 } },
-          search ? { tools: [{ google_search: {} }] } : {}
+          { contents: [{ role: 'user', parts: [{ text: (search && !step.search ? NOSEARCH : '') + prompt }] }], generationConfig: { maxOutputTokens: 8192 } },
+          step.search ? { tools: [{ google_search: {} }] } : {}
         ))
       });
       if (!g.ok) { if (g.status === 429) limited = true; errs.push(model + ' ' + g.status + ' ' + (await errText(g))); continue; }
       const d = await g.json();
       const parts = (d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts) || [];
       const text = parts.filter(p => !p.thought).map(p => p.text || '').join('').trim();
-      if (text) return res.status(200).json({ text, model });
+      if (text) return res.status(200).json({ text, model, searched: !!step.search });
       errs.push(model + ' empty answer');
     } catch (e) { errs.push(model + ' network'); }
   }
