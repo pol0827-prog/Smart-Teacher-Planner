@@ -398,7 +398,7 @@ if(D.v!=6){D.v=6;D.sl={};D.seen=[];if((D.chart.l||[]).length<5)D.chart={d:'2026-
 initOrder();
 syncInit();
 setTimeout(()=>{if(D.q&&D.q.d!=TD())genQ(0)},1500);
-async function autoTrends(n){n=n||0;if(!(typeof fau!='undefined'&&fau&&fau.currentUser)||!SYNCED){if(n<8)setTimeout(()=>autoTrends(n+1),8000);return}if(window.__at)return;window.__at=1;for(const k of ['chart','meme','sl']){const dd=k=='chart'?(D.chart||{}).d:k=='meme'?D.mD:(D.sl||{}).d;if(dd!=TD())await refTrend(k,0)}}
+async function autoTrends(n){n=n||0;if(!UID||!SYNCED){if(n<8)setTimeout(()=>autoTrends(n+1),8000);return}if(window.__at)return;window.__at=1;for(const k of ['chart','meme','sl']){const dd=k=='chart'?(D.chart||{}).d:k=='meme'?D.mD:(D.sl||{}).d;if(dd!=TD())await refTrend(k,0)}}
 setTimeout(autoTrends,6000);
 {const __e=rEv;rEv=function(){__e();addPrintBtns()};const __l=rLogs;rLogs=function(){__l();addPrintBtns()}}addPrintBtns();
 // vault
