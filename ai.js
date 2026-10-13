@@ -7,7 +7,7 @@ module.exports = async (req, res) => {
     return res.status(200).json({
       ok: true,
       keySet: !!process.env.GEMINI_API_KEY,
-      model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
+      model: process.env.GEMINI_MODEL || "gemini-1.5-flash",
       allowed: !!process.env.ALLOWED_EMAIL,
     });
   }
@@ -30,10 +30,10 @@ module.exports = async (req, res) => {
   } catch { return res.status(502).json({ error: "auth check failed" }); }
   if (process.env.ALLOWED_EMAIL && email !== process.env.ALLOWED_EMAIL) return res.status(403).json({ error: "not allowed" });
 
-  // 2) Gemini 호출
+  // 2) Gemini 호출 (공식 모델 gemini-1.5-flash 우선 사용)
   const key = process.env.GEMINI_API_KEY;
   if (!key) return res.status(500).json({ error: "server key missing" });
-  const models = [process.env.GEMINI_MODEL || "gemini-2.5-flash", "gemini-2.0-flash"];
+  const models = [process.env.GEMINI_MODEL || "gemini-1.5-flash", "gemini-2.0-flash"];
   let last = { status: 502, text: "" };
   for (const m of models) {
     const g = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, {
