@@ -7,7 +7,7 @@ module.exports = async (req, res) => {
     return res.status(200).json({
       ok: true,
       keySet: !!process.env.GEMINI_API_KEY,
-      model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+      model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
       allowed: !!process.env.ALLOWED_EMAIL,
     });
   }
