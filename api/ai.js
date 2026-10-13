@@ -3,7 +3,7 @@
 
 // ===== 설정 (이 부분만 고치면 됩니다) =====
 const FIREBASE_API_KEY = 'AIzaSyB4CqkVov0pchCctbQkxlUaOqIubt3qmFs'; // 파이어베이스 웹 키 (공개용, 로그인 확인에만 사용) - index.html 의 apiKey 와 같아야 함
-const MODELS = ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite']; // 앞에서부터 차례로 시도
+const MODELS = ['gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-3.8-flash']; // 앞에서부터 차례로 시도
 const SEARCH_MODELS = ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite']; // 검색이 필요한 요청에 차례로 시도
 // ==========================================
 
