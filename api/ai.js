@@ -42,7 +42,7 @@ module.exports = async (req, res) => {
 
   // 2) Google AI Studio(Gemini) 호출
   if (!KEY) return res.status(500).json({ error: "server key missing" });
-  const models = [MODEL, "gemini-2.0-flash"];
+  const models = [MODEL, "gemini-2.5-flash"];
   let last = { status: 502, text: "" };
   for (const m of models) {
     const g = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, {
