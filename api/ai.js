@@ -3,8 +3,8 @@
 
 // ===== 설정 (이 부분만 고치면 됩니다) =====
 const FIREBASE_API_KEY = 'AIzaSyB4CqkVov0pchCctbQkxlUaOqIubt3qmFs'; // 파이어베이스 웹 키 (공개용, 로그인 확인에만 사용) - index.html 의 apiKey 와 같아야 함
-const MODELS = ['gemini-3.8-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash']; // 앞에서부터 차례로 시도
-const SEARCH_MODELS = ['gemini-2.5-flash', 'gemini-3.8-flash']; // 검색이 필요한 요청에 차례로 시도 (무료 검색은 2.5 플래시만 됨)
+const MODELS = ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite']; // 앞에서부터 차례로 시도
+const SEARCH_MODELS = ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite']; // 검색이 필요한 요청에 차례로 시도
 // ==========================================
 
 const BASE = 'https://generativelanguage.googleapis.com/v1beta/models/';
@@ -68,7 +68,8 @@ module.exports = async (req, res) => {
 
   // 2) 제미나이 호출: 모델을 차례로 시도하고, 하나라도 답하면 그 답을 돌려줌
   if (!key) return res.status(500).json({ error: 'server key missing' });
-  let last = { status: 502, error: 'no model' };
+  const errs = [];
+  let limited = false;
   for (const model of modelList(!!search)) {
     try {
       const g = await fetch(BASE + encodeURIComponent(model) + ':generateContent', {
@@ -79,15 +80,15 @@ module.exports = async (req, res) => {
           search ? { tools: [{ google_search: {} }] } : {}
         ))
       });
-      if (!g.ok) { last = { status: g.status, error: model + ' ' + g.status + ' ' + (await errText(g)) }; continue; }
+      if (!g.ok) { if (g.status === 429) limited = true; errs.push(model + ' ' + g.status + ' ' + (await errText(g))); continue; }
       const d = await g.json();
       const parts = (d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts) || [];
       const text = parts.filter(p => !p.thought).map(p => p.text || '').join('').trim();
       if (text) return res.status(200).json({ text, model });
-      last = { status: 502, error: model + ' empty answer' };
-    } catch (e) { last = { status: 502, error: model + ' network' }; }
+      errs.push(model + ' empty answer');
+    } catch (e) { errs.push(model + ' network'); }
   }
-  return res.status(last.status === 429 ? 429 : 502).json({ error: last.error });
+  return res.status(limited ? 429 : 502).json({ error: errs.join(' | ') });
 };
 
 module.exports.config = { maxDuration: 60 };
