@@ -1,9 +1,15 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 로그인한 본인만 자기 데이터(data/users/내UID/...)를 읽고 쓸 수 있습니다.
+    // 지정한 구글 계정만 (index.html 과 api/ai.js 의 ALLOW 목록과 같게 유지)
+    function allowed() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.lower() in ['pol0827@goedu.kr', 't26-14@imae.hs.kr'];
+    }
+    // 그 계정 본인의 자료(data/users/내UID/...)만 읽고 쓸 수 있습니다.
     match /data/users/{uid}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read, write: if allowed() && request.auth.uid == uid;
     }
   }
 }
