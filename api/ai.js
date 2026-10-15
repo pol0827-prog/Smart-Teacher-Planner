@@ -5,6 +5,7 @@
 const FIREBASE_API_KEY = 'AIzaSyB4CqkVov0pchCctbQkxlUaOqIubt3qmFs'; // 파이어베이스 웹 키 (공개용, 로그인 확인에만 사용) - index.html 의 apiKey 와 같아야 함
 const MODELS = ['gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-3.8-flash']; // 앞에서부터 차례로 시도
 const SEARCH_MODELS = ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite']; // 검색이 필요한 요청에 차례로 시도
+const ALLOW = ['pol0827@goedu.kr', 't26-14@imae.hs.kr']; // 인공지능을 쓸 수 있는 구글 계정 (버셀 환경 변수 ALLOWED_EMAIL 을 넣으면 그것이 우선)
 // ==========================================
 
 const BASE = 'https://generativelanguage.googleapis.com/v1beta/models/';
@@ -34,7 +35,7 @@ module.exports = async (req, res) => {
 
   // 점검용: 키와 모델이 실제로 살아 있는지 확인 (사용량을 쓰지 않는 조회만 함)
   if (req.method === 'GET') {
-    const out = { ok: true, keySet: !!key, keyVar: envName('GEMINI_API_KEY') || envName('GOOGLE_API_KEY') || null, model: modelList(false)[0], allowed: !!env('ALLOWED_EMAIL'), version: 2, check: [] };
+    const out = { ok: true, keySet: !!key, keyVar: envName('GEMINI_API_KEY') || envName('GOOGLE_API_KEY') || null, model: modelList(false)[0], allowed: true, version: 3, check: [] };
     if (key) {
       for (const m of modelList(false)) {
         try {
@@ -61,9 +62,10 @@ module.exports = async (req, res) => {
     if (!v.ok) return res.status(401).json({ error: 'login check failed: ' + (await errText(v)) });
     const j = await v.json();
     if (!j.users || !j.users.length) return res.status(401).json({ error: 'login required' });
+    if (!j.users[0].emailVerified) return res.status(403).json({ error: 'not allowed' });
     email = (j.users[0].email || '').toLowerCase();
   } catch (e) { return res.status(401).json({ error: 'login check failed' }); }
-  const allowed = env('ALLOWED_EMAIL').split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
+  const allowed = (env('ALLOWED_EMAIL') ? env('ALLOWED_EMAIL').split(',') : ALLOW).map(x => x.trim().toLowerCase()).filter(Boolean);
   if (allowed.length && !allowed.includes(email)) return res.status(403).json({ error: 'not allowed' });
 
   // 2) 제미나이 호출: 모델을 차례로 시도하고, 하나라도 답하면 그 답을 돌려줌
