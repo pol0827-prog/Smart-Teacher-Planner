@@ -49,7 +49,8 @@ module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
   const body = typeof req.body === 'string' ? safeJson(req.body) : (req.body || {});
-  const { prompt, idToken, search } = body;
+  const { prompt, idToken, search, slow } = body;
+  const t0 = Date.now();
   if (typeof prompt !== 'string' || !prompt || prompt.length > 24000) return res.status(400).json({ error: 'bad prompt' });
   if (typeof idToken !== 'string' || !idToken) return res.status(401).json({ error: 'login required' });
 
@@ -77,12 +78,16 @@ module.exports = async (req, res) => {
   const plan = search
     ? [{ model: modelList(true)[0], search: true }].concat(modelList(false).map(m => ({ model: m, search: false })))
     : modelList(false).map(m => ({ model: m, search: false }));
+  // 한 모델이 정해진 시간(보통 9초, 급여명세서처럼 긴 일은 25초) 안에 답하지 않으면 다음 모델로 넘어감. 모두 합쳐 55초를 넘기지 않음
+  const wait = slow ? 25000 : 9000;
   for (const step of plan) {
     const model = step.model;
+    const left = 55000 - (Date.now() - t0);
+    if (left < 4000) { errs.push('시간 초과'); break; }
     try {
       const g = await fetch(BASE + encodeURIComponent(model) + ':generateContent', {
         method: 'POST',
-        signal: AbortSignal.timeout(9000), // 한 모델이 9초 안에 답하지 않으면 다음 모델로 넘어감
+        signal: AbortSignal.timeout(Math.min(wait, left)),
         headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
         body: JSON.stringify(Object.assign(
           { contents: [{ role: 'user', parts: [{ text: (search && !step.search ? NOSEARCH : '') + prompt }] }], generationConfig: { maxOutputTokens: 8192 } },
@@ -95,7 +100,7 @@ module.exports = async (req, res) => {
       const text = parts.filter(p => !p.thought).map(p => p.text || '').join('').trim();
       if (text) return res.status(200).json({ text, model, searched: !!step.search });
       errs.push(model + ' empty answer');
-    } catch (e) { errs.push(model + (e && e.name === 'TimeoutError' ? ' 응답 지연(9초 넘김)' : ' network')); }
+    } catch (e) { errs.push(model + (e && e.name === 'TimeoutError' ? ' 응답 지연' : ' network')); }
   }
   return res.status(limited ? 429 : 502).json({ error: errs.join(' | ') });
 };
